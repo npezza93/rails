@@ -75,6 +75,7 @@ module ActiveRecord
   autoload :Validations
   autoload :SecureToken
   autoload :DatabaseSelector, "active_record/middleware/database_selector"
+  autoload :UseIndex
 
   eager_autoload do
     autoload :ConnectionAdapters

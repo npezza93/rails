@@ -105,6 +105,11 @@ module ActiveRecord
         )
       end
 
+      # Does this adapter supports forcing of index on query?
+      def supports_use_index?
+        false
+      end
+
       def replica?
         @config[:replica] || false
       end

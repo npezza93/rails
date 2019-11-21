@@ -522,6 +522,10 @@ module ActiveRecord
         end
       end
 
+      def supports_use_index?
+        true
+      end
+
       private
         def initialize_type_map(m = type_map)
           super
