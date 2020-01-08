@@ -497,6 +497,18 @@ class UniquenessValidationTest < ActiveRecord::TestCase
     assert t4.valid?, "t4 should be valid"
   end
 
+  def test_validate_uniqueness_with_conditions_and_customizable_conditions
+    Topic.validates_uniqueness_of :title, conditions: ->(record) { where(approved: record.approved) }
+    Topic.create("title" => "I'm a topic", "approved" => true)
+    Topic.create("title" => "I'm an unapproved topic", "approved" => false)
+
+    t3 = Topic.new("title" => "I'm a topic", "approved" => true)
+    assert_not t3.valid?, "t3 shouldn't be valid"
+
+    t4 = Topic.new("title" => "I'm an unapproved topic", "approved" => false)
+    assert_not t4.valid?, "t4 should be valid"
+  end
+
   def test_validate_uniqueness_with_non_callable_conditions_is_not_supported
     assert_raises(ArgumentError) {
       Topic.validates_uniqueness_of :title, conditions: Topic.where(approved: true)

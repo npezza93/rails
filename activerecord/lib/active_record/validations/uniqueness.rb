@@ -29,7 +29,7 @@ module ActiveRecord
           end
         end
         relation = scope_relation(record, relation)
-        relation = relation.merge(options[:conditions]) if options[:conditions]
+        relation = relation.merge(options[:conditions].call(record)) if options[:conditions]
 
         if relation.exists?
           error_options = options.except(:case_sensitive, :scope, :conditions)
