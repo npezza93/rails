@@ -126,6 +126,13 @@ module ActiveRecord
       #     validates_uniqueness_of :title, conditions: -> { where.not(status: 'archived') }
       #   end
       #
+      # <tt>:conditions</tt> also has access to the current record.
+      #
+      #   class Theater < ActiveRecord::Base
+      #
+      #     validates_uniqueness_of :title, conditions: -> { where.not(status: 'archived') }
+      #   end
+      #
       # When the record is created, a check is performed to make sure that no
       # record exists in the database with the given value for the specified
       # attribute (that maps to a column). When the record is updated,
