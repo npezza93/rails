@@ -71,6 +71,7 @@ module ActiveSupport
     def self.wrap(**kwargs)
       return yield if active?
 
+      binding.irb if kwargs[:source] == "active_job"
       executor.wrap(**kwargs) do
         instance = run!
         begin

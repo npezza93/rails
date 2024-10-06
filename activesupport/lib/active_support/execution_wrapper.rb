@@ -84,12 +84,14 @@ module ActiveSupport
 
     # Perform the work in the supplied block as an execution.
     def self.wrap(source: "application.active_support")
+      binding.irb if source== "active_job"
       return yield if active?
 
       instance = run!
       begin
-        yield
+        x = yield
       rescue => error
+        binding.irb
         error_reporter&.report(error, handled: false, source: source)
         raise
       ensure
