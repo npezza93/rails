@@ -103,6 +103,13 @@ class TestJSONDecoding < ActiveSupport::TestCase
     end
   end
 
+  test "JSON decodes time JSON with time parsing disabled but option passed" do
+    with_parse_json_times(false) do
+      expected = { "a" => Date.parse("2007-01-01") }
+      assert_equal expected, ActiveSupport::JSON.decode(%({"a": "2007-01-01"}), parse_times: true)
+    end
+  end
+
   def test_failed_json_decoding
     assert_raise(ActiveSupport::JSON.parse_error) { ActiveSupport::JSON.decode(%(undefined)) }
     assert_raise(ActiveSupport::JSON.parse_error) { ActiveSupport::JSON.decode(%({a: 1})) }
