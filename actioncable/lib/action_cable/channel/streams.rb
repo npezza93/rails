@@ -97,7 +97,14 @@ module ActionCable
 
         # Build a stream handler by wrapping the user-provided callback with a decoder
         # or defaulting to a JSON-decoding retransmitter.
-        handler = worker_pool_stream_handler(broadcasting, callback || block, coder: coder)
+        user_handler = callback || block
+        handler =
+          if user_handler
+            worker_pool_stream_handler(broadcasting, user_handler, coder: coder)
+          else
+            stream_handler(broadcasting, nil, coder: coder)
+          end
+
         streams[broadcasting] = handler
 
         pubsub.subscribe(broadcasting, handler, lambda do
