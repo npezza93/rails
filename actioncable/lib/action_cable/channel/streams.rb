@@ -163,12 +163,8 @@ module ActionCable
         def worker_pool_stream_handler(broadcasting, user_handler, coder: nil)
           handler = stream_handler(broadcasting, user_handler, coder: coder)
 
-          if user_handler
-            -> message do
-              connection.perform_work handler, :call, message
-            end
-          else
-            handler
+          -> message do
+            connection.perform_work handler, :call, message
           end
         end
 
