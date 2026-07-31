@@ -97,14 +97,7 @@ module ActionCable
 
         # Build a stream handler by wrapping the user-provided callback with a decoder
         # or defaulting to a JSON-decoding retransmitter.
-        user_handler = callback || block
-        handler =
-          if user_handler
-            worker_pool_stream_handler(broadcasting, user_handler, coder: coder)
-          else
-            stream_handler(broadcasting, nil, coder: coder)
-          end
-
+        handler = worker_pool_stream_handler(broadcasting, callback || block, coder: coder)
         streams[broadcasting] = handler
 
         pubsub.subscribe(broadcasting, handler, lambda do
@@ -170,8 +163,12 @@ module ActionCable
         def worker_pool_stream_handler(broadcasting, user_handler, coder: nil)
           handler = stream_handler(broadcasting, user_handler, coder: coder)
 
-          -> message do
-            connection.perform_work handler, :call, message
+          if user_handler
+            -> message do
+              connection.perform_work handler, :call, message
+            end
+          else
+            handler
           end
         end
 
@@ -200,24 +197,29 @@ module ActionCable
           stream_transmitter stream_decoder(coder: coder), broadcasting: broadcasting
         end
 
-        def stream_decoder(handler = identity_handler, coder:)
+        def stream_decoder(handler = nil, coder:)
           if coder
-            -> message { handler.(coder.decode(message)) }
+            -> message do
+              message = coder.decode(message)
+
+              if handler
+                handler.(message)
+              else
+                message
+              end
+            end
           else
             handler
           end
         end
 
-        def stream_transmitter(handler = identity_handler, broadcasting:)
+        def stream_transmitter(handler = nil, broadcasting:)
           via = "streamed from #{broadcasting}"
 
           -> (message) do
-            transmit handler.(message), via: via
+            message = handler.(message) if handler
+            transmit message, via: via
           end
-        end
-
-        def identity_handler
-          -> message { message }
         end
     end
   end
