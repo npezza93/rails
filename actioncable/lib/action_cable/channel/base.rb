@@ -236,17 +236,40 @@ module ActionCable
 
         # Transmit a hash of data to the subscriber. The hash will automatically be
         # wrapped in a JSON envelope with the proper channel identifier marked as the
-        # recipient.
-        def transmit(data, via: nil) # :doc:
+        # recipient. An internal stream handler may provide a coder when +data+ is
+        # already encoded.
+        def transmit(data, via: nil, coder: nil) # :doc:
+          instrumenting = ActiveSupport::Notifications.notifier.listening?("transmit.action_cable")
+          logging = !logger.respond_to?(:debug?) || logger.debug?
+
+          if coder && (logging || instrumenting)
+            data = coder.decode(data)
+            coder = nil
+          end
+
           logger.debug do
             status = "#{self.class.name} transmitting #{data.inspect.truncate(300)}"
             status += " (via #{via})" if via
             status
           end
 
-          payload = { channel_class: self.class.name, data: data, via: via }
-          ActiveSupport::Notifications.instrument("transmit.action_cable", payload) do
-            connection.transmit identifier: @identifier, message: data
+          if instrumenting
+            payload = { channel_class: self.class.name, data: data, via: via }
+            ActiveSupport::Notifications.instrument("transmit.action_cable", payload) do
+              transmit_via_connection data, coder: coder
+            end
+          else
+            transmit_via_connection data, coder: coder
+          end
+        end
+
+        def transmit_via_connection(data, coder:)
+          cable_message = { identifier: @identifier, message: data }
+
+          if coder
+            connection.transmit cable_message, coder: coder
+          else
+            connection.transmit cable_message
           end
         end
 

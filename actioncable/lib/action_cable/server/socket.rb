@@ -42,10 +42,11 @@ module ActionCable
       # Methods used by the delegate (i.e., an application connection)
 
       # Send a non-serialized message over the WebSocket connection.
-      def transmit(cable_message)
+      def transmit(cable_message = nil, coder: nil, **cable_options)
+        cable_message = cable_options if cable_message.nil? && cable_options.any?
         return unless websocket.alive?
 
-        websocket.transmit encode(cable_message)
+        websocket.transmit encode(cable_message, coder: coder)
       end
 
       # Close the WebSocket connection.
@@ -113,8 +114,21 @@ module ActionCable
         attr_reader :websocket
         attr_reader :message_buffer
 
-        def encode(cable_message)
+        def encode(cable_message, coder: nil)
+          if coder
+            cable_message = cable_message.dup
+            cable_message[:message] = decode_or_wrap_json(cable_message[:message], coder)
+          end
+
           @coder.encode cable_message
+        end
+
+        def decode_or_wrap_json(message, coder)
+          if defined?(::JSON::Fragment) && coder == ActiveSupport::JSON && @coder == ActiveSupport::JSON
+            ::JSON::Fragment.new(message)
+          else
+            coder.decode(message)
+          end
         end
 
         def decode(websocket_message)

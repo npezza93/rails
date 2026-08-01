@@ -365,6 +365,54 @@ module ActionCable::StreamTests
       end
     end
 
+    test "stream coders that differ from the connection coder decode before transmitting" do
+      run_in_eventmachine do
+        open_connection
+        subscribe_to identifiers: { id: 1, coder: "custom" }
+
+        assert_called(DummyEncoder, :decode, times: 1, returns: { foo: "decoded" }) do
+          server.broadcast "test_room_1", { foo: "bar" }, coder: DummyEncoder
+          wait_for_async
+        end
+
+        assert_equal({ "foo" => "decoded" }, socket.last_transmission.fetch("message"))
+      end
+    end
+
+    test "default JSON streams do not decode messages before transmitting" do
+      ActiveSupport::JSON.encode(nil)
+      skip "JSON::Fragment is unavailable" unless defined?(::JSON::Fragment)
+
+      run_in_eventmachine do
+        open_connection
+        subscribe_to identifiers: { id: 1 }
+        socket.logger.level = Logger::INFO
+
+        assert_not_called ActiveSupport::JSON, :decode do
+          server.broadcast "test_room_1", { foo: "bar" }
+          wait_for_async
+        end
+
+        assert_equal({ "foo" => "bar" }, socket.last_transmission.fetch("message"))
+      end
+    end
+
+    test "default JSON streams decode messages for transmit instrumentation" do
+      run_in_eventmachine do
+        open_connection
+        subscribe_to identifiers: { id: 1 }
+
+        callback = -> (event) { @transmit_event = event }
+        ActiveSupport::Notifications.subscribed(callback, "transmit.action_cable") do
+          server.broadcast "test_room_1", { foo: "bar" }
+          wait_for_async
+        end
+
+        assert_equal({ "foo" => "bar" }, @transmit_event.payload[:data])
+        assert_equal({ "foo" => "bar" }, socket.last_transmission.fetch("message"))
+      end
+    end
+
     test "user supplied callbacks are run through the worker pool" do
       run_in_eventmachine do
         open_connection

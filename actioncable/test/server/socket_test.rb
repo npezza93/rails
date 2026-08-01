@@ -82,6 +82,23 @@ class ActionCable::Server::SocketTest < ActionCable::TestCase
     end
   end
 
+  test "transmitting an encoded JSON message embeds it without decoding" do
+    ActiveSupport::JSON.encode(nil)
+    skip "JSON::Fragment is unavailable" unless defined?(::JSON::Fragment)
+
+    socket = open_socket
+    message = ActiveSupport::JSON.encode({ greeting: "hello" })
+
+    assert_not_called ActiveSupport::JSON, :decode do
+      encoded = socket.send(:encode, { identifier: "test", message: message }, coder: ActiveSupport::JSON)
+
+      assert_equal({
+        "identifier" => "test",
+        "message" => { "greeting" => "hello" }
+      }, ::JSON.parse(encoded))
+    end
+  end
+
   test "on connection receive" do
     run_in_eventmachine do
       socket = open_socket

@@ -113,8 +113,14 @@ module ActionCable
 
       alias_method :handle_incoming, :handle_channel_command
 
-      def transmit(data) # :nodoc:
-        socket.transmit(data)
+      def transmit(data = nil, coder: nil, **data_options) # :nodoc:
+        data = data_options if data.nil? && data_options.any?
+
+        if coder
+          socket.transmit(data, coder: coder)
+        else
+          socket.transmit(data)
+        end
       end
 
       # Close the connection.

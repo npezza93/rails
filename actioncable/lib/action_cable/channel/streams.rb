@@ -189,12 +189,9 @@ module ActionCable
         #
         # TODO: Tests demonstrating this.
         #
-        # TODO: Room for optimization. Update transmit API to be coder-aware so we can
-        # no-op when pubsub and connection are both JSON-encoded. Then we can skip
-        # decode+encode if we're just proxying messages.
         def default_stream_handler(broadcasting, coder:)
           coder ||= ActiveSupport::JSON
-          stream_transmitter stream_decoder(coder: coder), broadcasting: broadcasting
+          stream_transmitter broadcasting: broadcasting, coder: coder
         end
 
         def stream_decoder(handler = nil, coder:)
@@ -213,12 +210,11 @@ module ActionCable
           end
         end
 
-        def stream_transmitter(handler = nil, broadcasting:)
+        def stream_transmitter(broadcasting:, coder:)
           via = "streamed from #{broadcasting}"
 
           -> (message) do
-            message = handler.(message) if handler
-            transmit message, via: via
+            transmit message, via: via, coder: coder
           end
         end
     end

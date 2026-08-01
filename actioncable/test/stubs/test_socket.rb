@@ -22,8 +22,9 @@ class TestSocket
     receiver.send method, *args
   end
 
-  def transmit(cable_message)
-    @transmissions << encode(cable_message)
+  def transmit(cable_message = nil, coder: nil, **cable_options)
+    cable_message = cable_options if cable_message.nil? && cable_options.any?
+    @transmissions << encode(cable_message, coder: coder)
   end
 
   def last_transmission
@@ -34,7 +35,16 @@ class TestSocket
     @coder.decode websocket_message
   end
 
-  def encode(cable_message)
+  def encode(cable_message, coder: nil)
+    if coder
+      cable_message = cable_message.dup
+      cable_message[:message] = if defined?(::JSON::Fragment) && coder == ActiveSupport::JSON && @coder == ActiveSupport::JSON
+        ::JSON::Fragment.new(cable_message[:message])
+      else
+        coder.decode(cable_message[:message])
+      end
+    end
+
     @coder.encode cable_message
   end
 end
